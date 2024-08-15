@@ -118,7 +118,7 @@ _remote_recorder() {
       "${_tmp}"
   dynssh \
     "${_dynssh_opts[@]}" \
-    -c \
+    -C \
       rsync -- \
     "${_rsync_opts[@]}" \
     "${_target_host}:${_tmp}" \
