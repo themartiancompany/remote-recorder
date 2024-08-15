@@ -125,6 +125,7 @@ _remote_recorder() {
     "${_out}"
   dynssh \
     "${_dynssh_opts[@]}" -- \
+    "${_target_host}" \
     rm \
       "${_tmp}"
   _msg_info \
