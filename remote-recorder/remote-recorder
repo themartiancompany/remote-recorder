@@ -31,6 +31,7 @@ _global_variables() {
   recording_resolution=""
   recorder_app=""
   recording_length=""
+  recording_buffer=""
   out_file=""
   bit_rate=""
   color=""
@@ -54,6 +55,12 @@ _android-recorder_options(){
   _recorder+=(
     android-recorder
   )
+  if [[ "${_buffer}" != "" ]]; then
+    _recorder_opts+=(
+      -k
+        "${_buffer}"
+    )
+  fi
   _recorder_opts+=(
     -l
       "${_length}" 
@@ -205,6 +212,7 @@ _show_config() {
   _msg_info "                 Bit rate:   $(_get "bit" "rate")"
   _msg_info "     Recording resolution:   $(_get "recording" "resolution")"
   _msg_info "         Recording length:   $(_get "recording" "length")"
+  _msg_info "         Recording buffer:   $(_get "recording" "buffer")"
   _msg_info "              Output file:   $(_get "out" "file")"
 }
 
@@ -262,6 +270,7 @@ while \
     r) override_recorder_app="${OPTARG}" ;;
     b) override_bit_rate="${OPTARG}" ;;
     l) override_recording_length="${OPTARG}" ;;
+    k) override_recording_buffer="${OPTARG}" ;;
     s) override_recording_resolution="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
@@ -297,6 +306,7 @@ app_opts=(
   "${recording_resolution}"
   "${bit_rate}"
   "${recording_length}"
+  "${recording_buffer}"
   "${out_file}"
 )
 _remote_recorder \
