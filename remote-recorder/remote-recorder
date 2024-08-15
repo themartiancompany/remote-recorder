@@ -242,7 +242,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'p:r:b:l:cvh?' \
+    't:r:b:l:s:cvh?' \
     arg; do
   case \
     "${arg}" in
