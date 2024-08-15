@@ -17,11 +17,11 @@ source \
 # are available
 _requirements() {
   _check_cmd \
-    'android-recorder' \
-    'android-recorder'
+    'dynssh' \
+    'dynssh'
   _check_cmd \
-    'camera-mode' \
-    'record-tools'
+    'rsync' \
+    'rsync'
 }
 
 # shellcheck disable=SC2034
@@ -38,9 +38,6 @@ _global_variables() {
 }
 
 _dynssh_options(){
-  _camera+=(
-    camera-mode
-  )
   _dynssh_opts+=(
     -t
       "${_target_host}"
@@ -96,6 +93,7 @@ _remote_recorder() {
     _recorder_opts=() \
     _recorder=() \
     _rsync_opts=() \
+    _dynssh_opts=() \
     _tmp
   if [[ "${quiet}" != "y" ]]; then
     _recorder_opts+=(
@@ -108,10 +106,13 @@ _remote_recorder() {
       -v
     )
   fi
-  "_dynssh_options"
+  _dynssh_options
   "_${_recorder_app}_options"
+  _msg_info \
+    "running dynssh with '${_dynssh_opts[*]}'"
   dynssh \
     "${_dynssh_opts[@]}" -- \
+    "${_target_host}" \
     "${_recorder[@]}" \
       "${_recorder_opts[@]}" \
       "${_tmp}"
@@ -153,6 +154,14 @@ _resolution_auto_detect() {
 # Set defaults and, if present, overrides
 # from program command line option parameters
 _set_overrides() {
+  _set_override \
+    "target" \
+    "host" \
+    ""
+  if [[ "${target_host}" == "" ]]; then
+    _msg_error \
+      "You must specify an host."
+  fi
   _set_override \
     "recording" \
     "date" \
