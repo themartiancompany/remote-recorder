@@ -43,7 +43,7 @@ _dynssh_options(){
       "${_target_host}"
   )
   _rsync_opts+=(
-    -az
+    # -az
   )
 }
 
