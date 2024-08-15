@@ -96,7 +96,7 @@ _remote_recorder() {
     _resolution="${3}" \
     _rate="${4}" \
     _length="${5}" \
-    _beffer="${6}" \
+    _buffer="${6}" \
     _out="${7}" \
     _recorder_opts=() \
     _recorder=() \
