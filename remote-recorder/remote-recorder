@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+_share="${_bin}/../share"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+
+# Check all required programs
+# are available
+_requirements() {
+  _check_cmd \
+    'android-recorder' \
+    'android-recorder'
+  _check_cmd \
+    'camera-mode' \
+    'record-tools'
+}
+
+# shellcheck disable=SC2034
+_global_variables() {
+  recording_date=""
+  target_host=""
+  recording_resolution=""
+  recorder_app=""
+  recording_length=""
+  out_file=""
+  bit_rate=""
+  color=""
+  quiet=""
+}
+
+_dynssh_options(){
+  _camera+=(
+    camera-mode
+  )
+  _dynssh_opts+=(
+    -t
+      "${_target_host}"
+  )
+  _rsync_opts+=(
+    -az
+  )
+}
+
+_android-recorder_options(){
+  _tmp="${HOME}/storage/movies/$( \
+    basename \
+      "${_out}").remote.mp4"
+  _recorder+=(
+    android-recorder
+  )
+  _recorder_opts+=(
+    -l
+      "${_length}" 
+    -b
+      "${_rate}"
+  )
+}
+
+_android-camerarecorder_options(){
+  _tmp="${HOME}/storage/movies/$( \
+    basename \
+      "${_out}").remote.mp4"
+  _recorder+=(
+    android-camerarecorder
+  )
+  _recorder_opts+=(
+    -l
+      "${_length}" 
+    -b
+      "${_rate}"
+  )
+}
+
+# Remote record.
+# $1: input video file
+# $2: recording method (root)
+# $2: delay seconds
+# $3: output video file
+_remote_recorder() {
+  local \
+    _target_host="${1}" \
+    _recorder_app="${2}" \
+    _resolution="${3}" \
+    _rate="${4}" \
+    _length="${5}" \
+    _out="${6}" \
+    _recorder_opts=() \
+    _recorder=() \
+    _rsync_opts=() \
+    _tmp
+  if [[ "${quiet}" != "y" ]]; then
+    _recorder_opts+=(
+      -v
+    )
+    _dynssh_opts+=(
+      -v
+    )
+    _rsync_opts+=(
+      -v
+    )
+  fi
+  "_dynssh_options"
+  "_${_recorder_app}_options"
+  dynssh \
+    "${_dynssh_opts[@]}" -- \
+    "${_recorder[@]}" \
+      "${_recorder_opts[@]}" \
+      "${_tmp}"
+  dynssh \
+    "${_dynssh_opts[@]}" \
+    -c \
+      rsync -- \
+    "${_rsync_opts[@]}" \
+    "${_target_host}:${_tmp}" \
+    "${_out}"
+  dynssh \
+    "${_dynssh_opts[@]}" -- \
+    rm \
+      "${_tmp}"
+  _msg_info \
+    "recording ended, quitting."
+}
+
+_resolution_auto_detect() {
+  local \
+    _resolution
+  if [[ $(command -v 'sudo') != "" ]]; then
+    _resolution="$( \
+      sudo \
+        wm \
+          size | \
+        tail \
+          -n \
+          1 | \
+	  awk \
+	    '{print $3}')"
+  else
+    echo '720x1280'
+  fi
+}
+
+# Set defaults and, if present, overrides
+# from program command line option parameters
+_set_overrides() {
+  _set_override \
+    "recording" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "recorder" \
+    "app" \
+    "android-camerarecorder"
+  _set_override \
+    "recording" \
+    "resolution" \
+    "$(_resolution_auto_detect)" 
+  _set_override \
+    "bit" \
+    "rate" \
+    "420000" # 420 Kb?
+    # "16000000" # 16 Mb?
+  _set_override \
+    "recording" \
+    "length" \
+    "360" # "$(( 24 * 60 * 60 ))" # 24 hours
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "           Recording date:   $(_get "recording" "date")"
+  _msg_info "              Target host:   $(_get "target" "host")"
+  _msg_info "             Recorder app:   $(_get "recorder" "app")"
+  _msg_info "                 Bit rate:   $(_get "bit" "rate")"
+  _msg_info "     Recording resolution:   $(_get "recording" "resolution")"
+  _msg_info "         Recording length:   $(_get "recording" "length")"
+  _msg_info "              Output file:   $(_get "out" "file")"
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _usage_text
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+
+Remote recorder.
+
+Usage:
+  $(_get "app" "name")
+    [options]
+    (<out_file>)
+  options:
+     -t <target_host>     Target host.
+                          Default: $(_get "recording" "resolution")
+     -r <recorder_app>    Recorder application to use.
+                          Default: $(_get "recorder" "app")
+     -s <widthxheight>    Recording resolution.
+                          Default: $(_get "recording" "resolution")
+     -b <bitrate>         Video bitrate.
+                          Default: $(_get "bit" "rate").
+     -l <length>          Length of the recording.
+                          Default: $(_get "recording" "length").
+     -h                   This message.
+     -v                   Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
+
+_globals
+_global_variables
+_requirements
+# shellcheck disable=SC2004
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'p:r:b:l:cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    t) override_target_host="${OPTARG}" ;;
+    r) override_recorder_app="${OPTARG}" ;;
+    b) override_bit_rate="${OPTARG}" ;;
+    l) override_recording_length="${OPTARG}" ;;
+    s) override_recording_resolution="${OPTARG}" ;;
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+	 _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0 && \
+    _set_overrides && \
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+(( $# < 1 )) && \
+  _set_overrides && \
+  _usage \
+    1
+out_file="${1}"
+_set_overrides
+_config_user_init \
+  "$(_get "app" "name")"
+_show_config
+app_opts=(
+  "${target_host}"
+  "${recorder_app}"
+  "${recording_resolution}"
+  "${bit_rate}"
+  "${recording_length}"
+  "${out_file}"
+)
+_remote_recorder \
+  "${app_opts[@]}"
