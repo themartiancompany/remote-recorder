@@ -69,18 +69,20 @@ _android-recorder_options(){
   )
 }
 
-_android-camerarecorder_options(){
+_android-camera-recorder_options(){
   _tmp="${HOME}/storage/movies/$( \
     basename \
       "${_out}").remote.mp4"
   _recorder+=(
-    android-camerarecorder
+    android-camera-recorder
   )
   _recorder_opts+=(
-    -l
+    -L
       "${_length}" 
     -b
       "${_rate}"
+    -k
+      "${_buffer}"
   )
 }
 
@@ -191,7 +193,11 @@ _set_overrides() {
   _set_override \
     "recording" \
     "length" \
-    "360" # "$(( 24 * 60 * 60 ))" # 24 hours
+    "$(( 6 * 10 ))" # "$(( 24 * 60 * 60 ))" # 24 hours
+  _set_override \
+    "recording" \
+    "buffer" \
+    "${recording_length}"
   if [[ -v override_color ]]; then
     color="${override_color}"
   elif [[ -z "${color}" ]]; then
@@ -244,8 +250,10 @@ Usage:
                           Default: $(_get "recording" "resolution")
      -b <bitrate>         Video bitrate.
                           Default: $(_get "bit" "rate").
-     -l <length>          Length of the recording.
+     -L <length>          Length of the recording.
                           Default: $(_get "recording" "length").
+     -k <buffer>          Buffer length of the recording.
+                          Default: $(_get "recording" "buffer").
      -h                   This message.
      -v                   Enable verbose output
 ENDUSAGETEXT
@@ -263,14 +271,14 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    't:r:b:l:s:cvh?' \
+    't:r:b:L:k:s:cvh?' \
     arg; do
   case \
     "${arg}" in
     t) override_target_host="${OPTARG}" ;;
     r) override_recorder_app="${OPTARG}" ;;
     b) override_bit_rate="${OPTARG}" ;;
-    l) override_recording_length="${OPTARG}" ;;
+    L) override_recording_length="${OPTARG}" ;;
     k) override_recording_buffer="${OPTARG}" ;;
     s) override_recording_resolution="${OPTARG}" ;;
     c) override_color="y" ;;
