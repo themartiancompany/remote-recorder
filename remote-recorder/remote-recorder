@@ -74,7 +74,7 @@ _android-camera-recorder_options(){
     basename \
       "${_out}").remote.mp4"
   _recorder+=(
-    android-camera-recorder
+    "${_recorder_app}"
   )
   _recorder_opts+=(
     -L
@@ -180,7 +180,7 @@ _set_overrides() {
   _set_override \
     "recorder" \
     "app" \
-    "android-camerarecorder"
+    "android-camera-recorder"
   _set_override \
     "recording" \
     "resolution" \
